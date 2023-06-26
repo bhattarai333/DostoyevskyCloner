@@ -28,7 +28,7 @@ def main():
     num_return_sequences = 1  # Number of generated sequences to return
 
     # Prompt for text generation
-    prompt = "Once upon"
+    prompt = "Once"
 
     # Encode the prompt
     input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
@@ -41,14 +41,14 @@ def main():
         attention_mask=attention_mask,
         max_length=max_length,
         num_return_sequences=num_return_sequences,
-        temperature=2.0,  # Adjust the temperature for controlling the randomness of the model
+        temperature=2.7,  # Adjust the temperature for controlling the randomness of the model
     )
 
     # Decode and print the generated text
     generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
-    with open('./output/output.txt', 'w') as f:
-        f.write(generated_text)
     print(generated_text)
+    with open('./output/output.txt', 'w', encoding='utf-8', errors='ignore') as f:
+        f.write(generated_text)
 
 # Run the main function
 if __name__ == "__main__":

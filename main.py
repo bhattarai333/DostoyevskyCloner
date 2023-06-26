@@ -9,6 +9,10 @@ import sys
 if __name__ == "__main__":
     try:
         if sys.argv[1] == 'train':
+            print('training...')
             train_model()
-    except:
+            print('generating...')
+            generate()
+    except Exception as e:
+        print('only generating...')
         generate()

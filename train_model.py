@@ -1,71 +1,54 @@
 import os
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, TextDataset, DataCollatorForLanguageModeling, Trainer, \
-    TrainingArguments
+import glob
 import torch
-
-
+from torch.nn.utils.rnn import pad_sequence
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, Trainer, TrainingArguments, DataCollatorForLanguageModeling
 
 def main():
+    # Step 1: Prepare the data
+    data_folder = "./input"
+    combined_file = "./output/combined.txt"
 
-    # Set the GPU device index
-    device_index = 0  # Change this to the desired GPU device index
+    # Combine the text files into one
+    with open(combined_file, "w", encoding="utf-8") as outfile:
+        for file_path in glob.glob(os.path.join(data_folder, "*.txt")):
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as infile:
+                outfile.write(infile.read() + "\n")
 
-    # Set the device
-    torch.cuda.set_device(device_index)
+    # Step 2: Install the required libraries (assuming Transformers is already installed)
 
-    # Check if CUDA is available
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        print(f"Using CUDA device: {torch.cuda.get_device_name(device_index)}")
-    else:
-        device = torch.device("cpu")
-        print("CUDA is not available. Using CPU instead.")
-
-    # Set the paths for input data and the model directory
-    input_folder = "./input/"
-    output_dir = "./model/"
-
-    # Load the pretrained GPT-2 tokenizer and model
+    # Step 3: Tokenize the data
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+
+    tokenized_data = []
+
+    # Step 4: Prepare the training dataset
+    sequence_length = 128
+    training_examples = []
+
+    with open(combined_file, "r", encoding="utf-8", errors="ignore") as file:
+        text = file.read()
+        for i in range(0, len(text) - sequence_length, sequence_length):
+            example = text[i:i + sequence_length]
+            training_examples.append(example)
+
+    tokenized_examples = []
+    for example in training_examples:
+        tokenized_example = tokenizer.encode(example)
+        tokenized_examples.append(torch.tensor(tokenized_example))
+
+    training_tensors = pad_sequence(tokenized_examples, batch_first=True)
+
+    # Step 5: Create a GPT-2 model
     model = GPT2LMHeadModel.from_pretrained("gpt2")
 
-    # Preprocess the data
-    file_paths = [os.path.join(input_folder, file_name) for file_name in os.listdir(input_folder)]
-
-    # Read and concatenate the contents of all the files
-    corpus = ""
-    for file_path in file_paths:
-        with open(file_path, "r", encoding="latin-1") as file:
-            corpus += file.read()
-
-    # Tokenize the corpus
-    inputs = tokenizer.encode(corpus, return_tensors="pt")
-
-    # Save the tokenized inputs to a file
-    tokenized_file = "./input/tokenized.txt"
-    with open(tokenized_file, "w", encoding="utf-8") as file:
-        for input_ids in inputs:
-            file.write(" ".join(str(token) for token in input_ids.tolist()))
-            file.write("\n")
-
-    # Create the dataset
-    dataset = TextDataset(tokenizer=tokenizer, file_path=tokenized_file, block_size=128)
-
-    # Configure the training arguments and other components
+    # Step 6: Train the model
+    output_dir = "./model"
     training_args = TrainingArguments(
         output_dir=output_dir,
-        overwrite_output_dir=True,
-        num_train_epochs=3,
-        per_device_train_batch_size=2,
-        save_steps=1000,
-        save_total_limit=2,
-        prediction_loss_only=True,
-        learning_rate=5e-5,  # Adjust as needed
-        weight_decay=0.01,  # Adjust as needed
-        adam_epsilon=1e-8,  # Adjust as needed
-        warmup_steps=1000,  # Adjust as needed
-        gradient_accumulation_steps=8,  # Adjust as needed
-        fp16=True,  # Enable mixed precision training
+        num_train_epochs=1,
+        per_device_train_batch_size=8,
+        save_steps=500
     )
 
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
@@ -74,11 +57,10 @@ def main():
         model=model,
         args=training_args,
         data_collator=data_collator,
-        train_dataset=dataset,
+        train_dataset=training_tensors
     )
 
-    # Fine-tune the model
     trainer.train()
 
-    # Save the fine-tuned model
     trainer.save_model(output_dir)
+
