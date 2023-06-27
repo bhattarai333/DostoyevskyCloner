@@ -24,24 +24,25 @@ def main():
     model.eval()
 
     # Set the generation parameters
-    max_length = 100  # Maximum number of tokens to generate
-    num_return_sequences = 1  # Number of generated sequences to return
+    max_length = 500  # Maximum number of tokens to generate
+    num_return_sequences = 14  # Number of generated sequences to return
 
     # Prompt for text generation
-    prompt = "Once"
+    prompt = "Once upon"
 
     # Encode the prompt
     input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
 
     # Generate text
-    padding_token_id = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id
+    padding_token_id = tokenizer.eos_token_id
     attention_mask = input_ids.ne(padding_token_id).to(device)
     output = model.generate(
-        input_ids=input_ids,
-        attention_mask=attention_mask,
+        input_ids,
         max_length=max_length,
+        num_beams=15,
+        no_repeat_ngram_size=2,
         num_return_sequences=num_return_sequences,
-        temperature=2.7,  # Adjust the temperature for controlling the randomness of the model
+        early_stopping=True
     )
 
     # Decode and print the generated text
