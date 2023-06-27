@@ -25,10 +25,11 @@ def main():
 
     # Set the generation parameters
     max_length = 500  # Maximum number of tokens to generate
-    num_return_sequences = 14  # Number of generated sequences to return
+    num_return_sequences = 5  # Number of generated sequences to return
+    num_beams = 10
 
     # Prompt for text generation
-    prompt = "Once upon"
+    prompt = "Once upon a time,"
 
     # Encode the prompt
     input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
@@ -39,10 +40,12 @@ def main():
     output = model.generate(
         input_ids,
         max_length=max_length,
-        num_beams=15,
+        attention_mask=attention_mask,
+        num_beams=num_beams,
         no_repeat_ngram_size=2,
         num_return_sequences=num_return_sequences,
-        early_stopping=True
+        early_stopping=True,
+        temperature=0.5
     )
 
     # Decode and print the generated text

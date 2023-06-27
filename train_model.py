@@ -27,9 +27,11 @@ def main():
     training_examples = []
 
     with open(combined_file, "r", encoding="utf-8", errors="ignore") as file:
-        text = file.read()
-        for i in range(0, len(text) - sequence_length, sequence_length):
-            example = text[i:i + sequence_length]
+        training_text = file.read()
+        stripped_training_text = training_text.replace('!', '').replace('_', '').replace('\n', ' ')
+        stripped_training_text = stripped_training_text.split()
+        for i in range(0, len(stripped_training_text), sequence_length):
+            example = ' '.join(stripped_training_text[i:i + sequence_length])
             training_examples.append(example)
 
     tokenized_examples = []
@@ -47,7 +49,7 @@ def main():
     training_args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=1,
-        per_device_train_batch_size=8,
+        per_device_train_batch_size=4,
         save_steps=500
     )
 
